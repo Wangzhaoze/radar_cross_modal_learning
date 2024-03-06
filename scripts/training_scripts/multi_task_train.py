@@ -3,7 +3,7 @@ import os
 sys.path.append(os.getcwd())
 
 from models.multi_task_model import multi_task_UNet
-from scripts.network_scripts.multi_task_dataloader import Data_Loader
+from scripts.training_scripts.multi_task_dataloader import Data_Loader
 from torch import optim
 import torch.nn as nn
 import torch

@@ -3,7 +3,7 @@ import os
 sys.path.append(os.getcwd())
 
 from models.ogm2seg_model import ogm2seg_UNet
-from scripts.network_scripts.pcl2seg_dataloader import ISBI_Loader
+from scripts.training_scripts.pcl2seg_dataloader import ISBI_Loader
 from torch import optim
 import torch.nn as nn
 import torch
