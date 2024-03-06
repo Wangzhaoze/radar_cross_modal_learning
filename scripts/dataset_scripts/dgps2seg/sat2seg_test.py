@@ -10,36 +10,29 @@ import os
 import cv2
 import sys
 import os
+
+# Add current directory to the system path to import local modules
 sys.path.append(os.getcwd())
 
 from models.sat2seg_model import sat2seg_UNet
 
-
 def cal_miou(test_dir="./trainset/val_set",
              pred_dir="./results", gt_dir="trainset/val_label"):
-    # ---------------------------------------------------------------------------#
-    #   miou_mode用于指定该文件运行时计算的内容
-    #   miou_mode为0代表整个miou计算流程，包括获得预测结果、计算miou。
-    #   miou_mode为1代表仅仅获得预测结果。
-    #   miou_mode为2代表仅仅计算miou。
-    # ---------------------------------------------------------------------------#
+    # Mode for calculating mIoU
+    # miou_mode 0: complete mIoU calculation process, including getting predictions and calculating mIoU.
+    # miou_mode 1: only get predictions.
+    # miou_mode 2: only calculate mIoU.
     miou_mode = 0
-    # ------------------------------#
-    #   分类个数+1、如2+1
-    # ------------------------------#
-    num_classes = 2
-    # --------------------------------------------#
-    #   区分的种类，和json_to_dataset里面的一样
-    # --------------------------------------------#
-    name_classes = ["background", "nidus"]
-    # name_classes    = ["_background_","cat","dog"]
-    # -------------------------------------------------------#
-    #   指向VOC数据集所在的文件夹
-    #   默认指向根目录下的VOC数据集
-    # -------------------------------------------------------#
-    # 计算结果和gt的结果进行比对
 
-    # 加载模型
+    # Number of classes +1, e.g., 2+1
+    num_classes = 2
+
+    # Class names, same as in json_to_dataset
+    name_classes = ["background", "nidus"]
+
+    # Calculation of results and comparison with ground truth
+
+    # Load the model
 
     if miou_mode == 0 or miou_mode == 1:
         if not os.path.exists(pred_dir):
@@ -47,13 +40,13 @@ def cal_miou(test_dir="./trainset/val_set",
 
         print("Load model.")
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        # 加载网络，图片单通道，分类为1。
+        # Load the network, single channel for image, 1 class for classification
         net = sat2seg_UNet(n_channels=1, n_classes=1)
-        # 将网络拷贝到deivce中
+        # Copy the network to the device
         net.to(device=device)
-        # 加载模型参数
+        # Load model parameters
         net.load_state_dict(torch.load('best_model_skin.pth', map_location=device)) # todo
-        # 测试模式
+        # Set to evaluation mode
         net.eval()
         print("Load model done.")
 
@@ -65,19 +58,18 @@ def cal_miou(test_dir="./trainset/val_set",
             image_path = os.path.join(test_dir, image_id + ".jpg")
             img = cv2.imread(image_path)
             origin_shape = img.shape
-            # print(origin_shape)
-            # 转为灰度图
+            # Convert to grayscale
             img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             img = cv2.resize(img, (512, 512))
-            # 转为batch为1，通道为1，大小为512*512的数组
+            # Convert to a batch of size 1, with 1 channel, and size of 512*512
             img = img.reshape(1, 1, img.shape[0], img.shape[1])
-            # 转为tensor
+            # Convert to tensor
             img_tensor = torch.from_numpy(img)
-            # 将tensor拷贝到device中，只用cpu就是拷贝到cpu中，用cuda就是拷贝到cuda中。
+            # Copy the tensor to the device, if using CPU, copy to CPU, if using CUDA, copy to CUDA
             img_tensor = img_tensor.to(device=device, dtype=torch.float32)
-            # 预测
+            # Predict
             pred = net(img_tensor)
-            # 提取结果
+            # Extract result
             pred = np.array(pred.data.cpu()[0])[0]
             pred[pred >= 0.5] = 255
             pred[pred < 0.5] = 0
@@ -87,14 +79,14 @@ def cal_miou(test_dir="./trainset/val_set",
         print("Get predict result done.")
 
     if miou_mode == 0 or miou_mode == 2:
-        print("Get miou.")
+        print("Get mIoU.")
         print(gt_dir)
         print(pred_dir)
         print(num_classes)
         print(name_classes)
         hist, IoUs, PA_Recall, Precision = compute_mIoU(gt_dir, pred_dir, image_ids, num_classes,
-                                                        name_classes)  # 执行计算mIoU的函数
-        print("Get miou done.")
+                                                        name_classes)  # Execute the function to calculate mIoU
+        print("Get mIoU done.")
         miou_out_path = "results/"
         show_results(miou_out_path, hist, IoUs, PA_Recall, Precision, name_classes)
 

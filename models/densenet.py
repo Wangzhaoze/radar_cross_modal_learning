@@ -2,32 +2,35 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.models as models
 
 class DenseNet(nn.Module):
     def __init__(self, num_classes, input_size):
+        """
+        Initialize the DenseNet model.
+
+        Args:
+            num_classes (int): Number of output classes.
+            input_size (tuple): Input size (height, width).
+        """
         super(DenseNet, self).__init__()
 
-        # 加载预训练的DenseNet模型
+        # Load the pre-trained DenseNet model
         densenet = models.densenet201()
         self.densenet = models.densenet201()
         
-        # 获取DenseNet的特征提取部分
+        # Get the feature extraction part of DenseNet
         feature_extractor = nn.Sequential(*list(densenet.children())[:-1])
         
-        # 获取特征提取部分的输出通道数
+        # Get the output channels of the feature extraction part
         in_channels = densenet.classifier.in_features
         
-        # 定义自定义的分割头部，输出通道数为1
+        # Define a custom segmentation head with 1 output channel
         segmentation_head = SegmentationHead(in_channels, num_classes)
 
         self.feature_extractor = feature_extractor
         self.segmentation_head = segmentation_head
         
-        # 定义上采样层，用于将特征图的尺寸增加到输入尺寸
+        # Define the upsampling layer to increase the size of the feature map to the input size
         self.upsample = nn.Upsample(size=input_size, mode='bilinear', align_corners=True)
 
         self.sigmoid = nn.Sigmoid()
@@ -35,18 +38,43 @@ class DenseNet(nn.Module):
         self.conv = nn.Conv2d(1, 1, kernel_size=(1000, 400))
 
     def forward(self, x):
+        """
+        Forward pass of the DenseNet model.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor.
+        """
         output = self.densenet(x)
 
         return output
 
 
-# 定义自定义的分割头部
+# Define a custom segmentation head
 class SegmentationHead(nn.Module):
     def __init__(self, in_channels, out_channels):
+        """
+        Initialize the segmentation head.
+
+        Args:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+        """
         super(SegmentationHead, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
 
     def forward(self, x):
+        """
+        Forward pass of the segmentation head.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor.
+        """
         x = self.conv1(x)
         return x
 
@@ -54,15 +82,15 @@ class SegmentationHead(nn.Module):
 if __name__ == '__main__':
 
     input_size = (1000, 400)
-    # 创建模型实例并训练
+    # Create a model instance and train
     model = DenseNet(1, input_size)
 
-    # 创建一个随机输入
+    # Create a random input
     input_tensor = torch.randn(1, 3, input_size[0], input_size[1])
 
-    # 将输入传递给模型进行前向传播
+    # Pass the input through the model for forward propagation
     densenet = models.densenet201()
     output_tensor = model(input_tensor)
 
-    # 打印输出尺寸
+    # Print the output size
     print(output_tensor.size())

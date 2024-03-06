@@ -126,7 +126,6 @@ class ogm2traj_UNet(nn.Module):
         self.up3 = Up(256, 64, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
-        self.sfm = nn.Softmax(dim=2)
 
 
     def forward(self, x):
@@ -143,7 +142,7 @@ class ogm2traj_UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        x = self.outc(x)
-        logits = self.sfm(x)
-        return logits
+        output = self.outc(x)
+        
+        return output
 

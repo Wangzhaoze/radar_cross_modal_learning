@@ -12,50 +12,50 @@ from tqdm import tqdm
 
 def train_net(net, device, data_path, epochs=40, batch_size=1, lr=0.00001):
 
-    # 加载训练集
+    # Load the training dataset
     isbi_dataset = ISBI_Loader(data_path)
     per_epoch_num = len(isbi_dataset) / batch_size
     train_loader = torch.utils.data.DataLoader(dataset=isbi_dataset,batch_size=batch_size,shuffle=True)
 
-    # 定义RMSprop优化器
+    # Define the RMSprop optimizer
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
 
-    # 定义Loss
+    # Define the loss function
     criterion = nn.BCEWithLogitsLoss()
 
-    # best_loss统计，初始化为正无穷
+    # Initialize best_loss to positive infinity
     best_loss = float('inf')
 
-    # 训练epochs次
+    # Train for 'epochs' epochs
     with tqdm(total=epochs*per_epoch_num) as pbar:
         for epoch in range(epochs):
 
-            # 训练模式
+            # Set to training mode
             net.train()
 
-            # 按照batch_size开始训练
+            # Train for each batch
             for image, label in train_loader:
 
-                # 梯度清零
+                # Clear gradients
                 optimizer.zero_grad()
 
-                # 将数据拷贝到device中
+                # Copy data to the device
                 image = image.to(device=device, dtype=torch.float32)
                 label = label.to(device=device, dtype=torch.float32)
 
-                # 使用网络参数，输出结果
+                # Use network parameters to produce output
                 output = net(image)
 
-                # 计算loss
+                # Calculate loss
                 loss = criterion(output, label)
 
                 print('{}/{}:Loss/train'.format(epoch + 1, epochs), loss.item())
-                # 保存loss值最小的网络参数
+                # Save the parameters of the network with the smallest loss
                 if loss < best_loss:
                     best_loss = loss
                     torch.save(net.state_dict(), './pth/best_model_sat2seg_k5.pth')
 
-                # 更新参数
+                # Update parameters
                 loss.backward()
                 optimizer.step()
                 pbar.update(1)
@@ -63,17 +63,17 @@ def train_net(net, device, data_path, epochs=40, batch_size=1, lr=0.00001):
 
 if __name__ == "__main__":
 
-    # 选择设备，有cuda用cuda，没有就用cpu
+    # Choose device, use cuda if available, otherwise use cpu
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # 加载网络，图片单通道1，分类为1。
+    # Load the network, with 1 channel for image, and 1 class for segmentation
     net = sat2seg_UNet(n_channels=1, n_classes=1)  
 
-    # 将网络拷贝到deivce中
+    # Copy the network to the specified device
     net.to(device=device)
 
-    # 指定训练集地址，开始训练
-    data_path = "./dataset" #本地的数据集位置
+    # Specify the training dataset directory and start training
+    data_path = "./dataset" # The local dataset location
 
     print("------training------")
     train_net(net, device, data_path, epochs=40, batch_size=1)
